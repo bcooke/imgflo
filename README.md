@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/imgflo.svg?style=flat)](https://www.npmjs.com/package/imgflo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**imgflo** is a **workflow execution engine** for image generation and manipulation. It provides three core operations (generate, transform, save) that work consistently across JavaScript, CLI, YAML, MCP, and future REST APIs.
+**imgflo** is a **workflow execution engine** for image generation and manipulation. It provides three core operations (generate, transform, save) that work consistently across JavaScript, CLI, YAML, and MCP.
 
 ## Core Concept
 
@@ -19,7 +19,7 @@ These primitives work the same way whether you're:
 - Running CLI commands
 - Defining YAML workflows
 - Using LLMs (Claude, GPT) via MCP
-- (Future) Using visual builders or REST APIs
+- Building your own APIs or tools on top of imgflo
 
 ## What imgflo Does (and Doesn't)
 

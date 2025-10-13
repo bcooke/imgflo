@@ -14,28 +14,28 @@ export const configCommand = new Command("config")
         try {
           const config = await loadConfig();
 
-          // Parse the key path (e.g., "s3.bucket" -> store.s3.bucket)
+          // Parse the key path (e.g., "s3.bucket" -> save.s3.bucket)
           const parts = key.split(".");
 
           if (parts[0] === "s3") {
-            if (!config.store) config.store = {};
-            if (!config.store.s3) config.store.s3 = {};
+            if (!config.save) config.save = {};
+            if (!config.save.s3) config.save.s3 = {};
 
             if (parts[1] === "bucket") {
-              (config.store.s3 as any).bucket = value;
+              (config.save.s3 as any).bucket = value;
             } else if (parts[1] === "region") {
-              (config.store.s3 as any).region = value;
+              (config.save.s3 as any).region = value;
             } else {
-              (config.store.s3 as any)[parts[1]] = value;
+              (config.save.s3 as any)[parts[1]] = value;
             }
 
-            // Set default storage provider to s3
-            if (!config.store.default) {
-              config.store.default = "s3";
+            // Set default save provider to s3
+            if (!config.save.default) {
+              config.save.default = "s3";
             }
           } else if (parts[0] === "openai") {
             if (!config.ai) config.ai = {};
-            if (!config.ai.openai) config.ai.openai = {};
+            if (!config.ai.openai) config.ai.openai = { apiKey: '' };
 
             if (parts[1] === "apiKey" || parts[1] === "key") {
               (config.ai.openai as any).apiKey = value;
@@ -124,7 +124,7 @@ export const configCommand = new Command("config")
           const s3Bucket = await question("  S3 Bucket name: ");
           if (s3Bucket) {
             const s3Region = await question("  S3 Region [us-east-1]: ") || "us-east-1";
-            config.store = {
+            config.save = {
               default: "s3",
               s3: {
                 bucket: s3Bucket,

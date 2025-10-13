@@ -87,16 +87,18 @@ program
       const config = await loadConfig();
 
       console.log("\nCurrent configuration:");
-      if (config.store?.s3) {
+      if (config.save?.s3) {
         console.log("  S3 Storage:");
-        console.log(`    - Bucket: ${(config.store.s3 as any).bucket || "not set"}`);
-        console.log(`    - Region: ${(config.store.s3 as any).region || "not set"}`);
+        console.log(`    - Bucket: ${(config.save.s3 as any).bucket || "not set"}`);
+        console.log(`    - Region: ${(config.save.s3 as any).region || "not set"}`);
+        console.log(`    - Endpoint: ${(config.save.s3 as any).endpoint || "default (AWS)"}`);
+        console.log(`    - Credentials: ${(config.save.s3 as any).credentials ? "configured" : "not set"}`);
       }
       if (config.ai?.openai) {
         console.log("  OpenAI:");
         console.log(`    - API Key: ${(config.ai.openai as any).apiKey ? "set" : "not set"}`);
       }
-      if (!config.store && !config.ai) {
+      if (!config.save && !config.ai) {
         console.log("  No configuration found");
       }
     } catch (error) {
@@ -104,9 +106,16 @@ program
     }
 
     console.log("\nEnvironment variables:");
-    console.log("  - AWS_REGION:", process.env.AWS_REGION || "not set");
-    console.log("  - S3_BUCKET:", process.env.S3_BUCKET || "not set");
-    console.log("  - OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? "set" : "not set");
+    console.log("  AWS/S3:");
+    console.log("    - AWS_REGION:", process.env.AWS_REGION || "not set");
+    console.log("    - S3_BUCKET:", process.env.S3_BUCKET || "not set");
+    console.log("    - AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID ? "set" : "not set");
+    console.log("  Tigris:");
+    console.log("    - TIGRIS_BUCKET_NAME:", process.env.TIGRIS_BUCKET_NAME || "not set");
+    console.log("    - TIGRIS_REGION:", process.env.TIGRIS_REGION || "not set");
+    console.log("    - TIGRIS_ACCESS_KEY_ID:", process.env.TIGRIS_ACCESS_KEY_ID ? "set" : "not set");
+    console.log("  AI:");
+    console.log("    - OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? "set" : "not set");
 
     // Check plugins
     console.log("\nInstalled plugins:");

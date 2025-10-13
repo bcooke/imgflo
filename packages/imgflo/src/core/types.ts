@@ -67,8 +67,8 @@ export interface ImgfloConfig {
       chmod?: number;
     };
     s3?: {
-      bucket: string;
-      region: string;
+      bucket?: string;
+      region?: string;
       endpoint?: string;
       credentials?: {
         accessKeyId: string;
@@ -82,21 +82,13 @@ export interface ImgfloConfig {
     };
     [providerName: string]: unknown;
   };
-  /** @deprecated Use save instead */
-  store?: {
-    default?: string;
-    [providerName: string]: unknown;
-  };
 
-  // Legacy config support
-  /** @deprecated Use generators instead */
-  svg?: {
-    default?: string;
-    [providerName: string]: unknown;
-  };
-  /** @deprecated Use generators instead */
+  // AI configuration
   ai?: {
     default?: string;
+    openai?: {
+      apiKey: string;
+    };
     [providerName: string]: unknown;
   };
 }

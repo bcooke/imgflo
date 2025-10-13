@@ -33,7 +33,6 @@ export class Imgflo {
   public providers: {
     generators: Record<string, ImageGenerator>;
     transform: Record<string, TransformProvider>;
-    store: Record<string, StoreProvider>;
     save: Record<string, SaveProvider>;
   };
 
@@ -48,7 +47,6 @@ export class Imgflo {
     this.providers = {
       generators: {},
       transform: {},
-      store: {},
       save: {},
     };
 
@@ -392,14 +390,5 @@ export class Imgflo {
   registerSaveProvider(provider: SaveProvider): void {
     this.providers.save[provider.name] = provider;
     this.logger.debug(`Registered save provider: ${provider.name}`);
-  }
-
-  /**
-   * Register a custom storage provider
-   * @deprecated Use registerSaveProvider() instead
-   */
-  registerStoreProvider(provider: StoreProvider): void {
-    this.providers.store[provider.name] = provider;
-    this.logger.debug(`Registered store provider: ${provider.name}`);
   }
 }

@@ -5,6 +5,110 @@ All notable changes to imgflo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2025-10-13
+
+### Fixed
+
+#### Cloud Storage Actually Works Now (Critical Fix)
+
+This release fixes **all** the issues reported in the field testing feedback. S3-compatible storage (AWS S3, Tigris, R2, etc.) now works correctly via environment variables, config files, CLI, and MCP server.
+
+**What Was Broken**:
+- TypeScript config files (`imgflo.config.ts`) weren't being imported correctly
+- Environment variables (TIGRIS_*, AWS_*) weren't being detected
+- S3SaveProvider wasn't being registered even when credentials were present
+- Deprecated `store` config key conflicted with new `save` key
+- MCP server couldn't upload to cloud storage despite having credentials
+
+**What's Fixed**:
+- ✅ TypeScript config import now works with relative paths (uses `file://` URLs)
+- ✅ Environment variables auto-detected: `TIGRIS_*`, `AWS_*`, standard `S3_*`
+- ✅ S3SaveProvider auto-registers when Tigris/AWS env vars are present
+- ✅ Removed all deprecated `store` config references - only `save` now
+- ✅ MCP server, CLI, and all interfaces now consistently support cloud storage
+- ✅ Better error messages showing detected configuration
+
+### Changed
+
+- **BREAKING**: Removed deprecated `store` config key - use `save` instead
+- **BREAKING**: Removed `registerStoreProvider()` method - use `registerSaveProvider()` instead
+- Simplified configuration - environment variables now auto-enable S3 provider
+
+### Added
+
+#### Automatic Tigris/S3 Detection
+
+imgflo now automatically detects and enables S3-compatible storage when you set environment variables:
+
+```bash
+# Tigris (auto-detects endpoint)
+TIGRIS_BUCKET_NAME=my-bucket
+TIGRIS_REGION=auto
+TIGRIS_ACCESS_KEY_ID=tid_...
+TIGRIS_SECRET_ACCESS_KEY=tsec_...
+
+# AWS S3
+AWS_REGION=us-east-1
+S3_BUCKET=my-bucket
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+
+# Custom S3-compatible (R2, etc.)
+S3_ENDPOINT=https://...
+S3_BUCKET=my-bucket
+AWS_REGION=auto
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+```
+
+No config file needed! Just set the env vars and use `s3://bucket/path` destinations.
+
+#### Enhanced CLI Doctor
+
+```bash
+imgflo doctor
+```
+
+Now shows:
+- Detected Tigris credentials
+- Detected AWS credentials
+- S3 provider status
+- Configuration file locations
+- Which config is actually being used
+
+### Technical Details
+
+- Fixed `loadConfigFile()` to convert relative paths to absolute `file://` URLs for ESM import
+- Updated `loadEnvConfig()` to detect `TIGRIS_*` environment variables
+- Auto-set Tigris endpoint (`https://fly.storage.tigris.dev`) when Tigris credentials detected
+- Removed `StoreProvider` interface and all legacy `store` references
+- Updated all tests to use `save` instead of `store`
+- All 44 tests passing
+
+### Migration from 0.4.2
+
+If you created an `imgflo.config.ts` file following the v0.4.2 migration guide, **it will now work correctly**. No changes needed.
+
+If you were using the deprecated `store` key in config files, change it to `save`:
+
+```typescript
+// Before (deprecated)
+export default {
+  store: {
+    s3: { bucket: '...', region: '...' }
+  }
+}
+
+// After (v0.4.3+)
+export default {
+  save: {
+    s3: { bucket: '...', region: '...' }
+  }
+}
+```
+
+Or just use environment variables and don't create a config file at all!
+
 ## [0.4.2] - 2025-10-13
 
 ### Fixed

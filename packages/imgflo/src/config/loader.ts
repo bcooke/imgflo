@@ -61,8 +61,8 @@ export async function loadConfig(
   const envConfig = loadEnvConfig();
 
   // Merge env config but don't override existing config
-  if (!config.store && envConfig.store) {
-    config.store = envConfig.store;
+  if (!config.save && envConfig.save) {
+    config.save = envConfig.save;
   }
   if (!config.ai && envConfig.ai) {
     config.ai = envConfig.ai;
@@ -80,8 +80,11 @@ async function loadConfigFile(path: string): Promise<ImgfloConfig> {
     const content = await readFile(path, 'utf-8');
     return JSON.parse(content);
   } else if (path.endsWith('.ts') || path.endsWith('.js') || path.endsWith('.mjs')) {
-    // TypeScript/JavaScript config
-    const module = await import(path);
+    // TypeScript/JavaScript config - convert to absolute file:// URL for import()
+    const { resolve } = await import("path");
+    const absolutePath = resolve(process.cwd(), path);
+    const fileUrl = `file://${absolutePath}`;
+    const module = await import(fileUrl);
     return module.default || module;
   } else {
     // Try as JSON first
@@ -89,8 +92,11 @@ async function loadConfigFile(path: string): Promise<ImgfloConfig> {
       const content = await readFile(path, 'utf-8');
       return JSON.parse(content);
     } catch {
-      // Try as module
-      const module = await import(path);
+      // Try as module - convert to absolute file:// URL
+      const { resolve } = await import("path");
+      const absolutePath = resolve(process.cwd(), path);
+      const fileUrl = `file://${absolutePath}`;
+      const module = await import(fileUrl);
       return module.default || module;
     }
   }
@@ -98,22 +104,38 @@ async function loadConfigFile(path: string): Promise<ImgfloConfig> {
 
 /**
  * Load configuration from environment variables
+ * Supports multiple S3-compatible services via environment variables
  */
 function loadEnvConfig(): ImgfloConfig {
   const config: ImgfloConfig = {};
 
-  // S3 configuration
-  if (process.env.S3_BUCKET || process.env.AWS_REGION) {
-    config.store = {
+  // S3-compatible storage configuration
+  // Support standard AWS env vars, plus Tigris-specific ones
+  const hasS3Config =
+    process.env.S3_BUCKET ||
+    process.env.AWS_REGION ||
+    process.env.TIGRIS_BUCKET_NAME ||
+    process.env.TIGRIS_ACCESS_KEY_ID;
+
+  if (hasS3Config) {
+    const bucket = process.env.TIGRIS_BUCKET_NAME || process.env.S3_BUCKET;
+    const region = process.env.TIGRIS_REGION || process.env.AWS_REGION || 'auto';
+    const accessKeyId = process.env.TIGRIS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.TIGRIS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
+    const endpoint = process.env.S3_ENDPOINT ||
+                    (process.env.TIGRIS_BUCKET_NAME ? 'https://fly.storage.tigris.dev' : undefined);
+
+    config.save = {
       default: 's3',
       s3: {
-        bucket: process.env.S3_BUCKET,
-        region: process.env.AWS_REGION || 'us-east-1',
-        ...(process.env.AWS_ACCESS_KEY_ID && {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        }),
-        ...(process.env.AWS_SECRET_ACCESS_KEY && {
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        bucket,
+        region,
+        ...(endpoint && { endpoint }),
+        ...(accessKeyId && secretAccessKey && {
+          credentials: {
+            accessKeyId,
+            secretAccessKey,
+          },
         }),
       },
     };
@@ -160,10 +182,10 @@ export function mergeCliArgs(
 
   // Override S3 settings from CLI
   if (cliArgs.bucket || cliArgs.region) {
-    merged.store = {
-      ...merged.store,
+    merged.save = {
+      ...merged.save,
       s3: {
-        ...(merged.store?.s3 as any),
+        ...(merged.save?.s3 as any),
         ...(cliArgs.bucket && { bucket: cliArgs.bucket }),
         ...(cliArgs.region && { region: cliArgs.region }),
       },
@@ -172,8 +194,8 @@ export function mergeCliArgs(
 
   // Override storage provider
   if (cliArgs.provider) {
-    merged.store = {
-      ...merged.store,
+    merged.save = {
+      ...merged.save,
       default: cliArgs.provider,
     };
   }

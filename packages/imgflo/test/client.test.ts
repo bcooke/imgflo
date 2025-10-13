@@ -73,7 +73,7 @@ describe('Imgflo Core Client', () => {
       expect(client.providers).toBeDefined();
       expect(client.providers.generators).toEqual({});
       expect(client.providers.transform).toEqual({});
-      expect(client.providers.store).toEqual({});
+      expect(client.providers.save).toEqual({});
     });
 
     it('should accept custom config', () => {
@@ -275,10 +275,10 @@ describe('Imgflo Core Client', () => {
     });
   });
 
-  describe('Store Provider Registration', () => {
-    it('should register a store provider', () => {
-      client.registerStoreProvider(mockStoreProvider);
-      expect(client.providers.store['mock-store']).toBe(mockStoreProvider);
+  describe('Save Provider Registration', () => {
+    it('should register a save provider', () => {
+      client.registerSaveProvider(mockSaveProvider);
+      expect(client.providers.save['mock-save']).toBe(mockSaveProvider);
     });
   });
 

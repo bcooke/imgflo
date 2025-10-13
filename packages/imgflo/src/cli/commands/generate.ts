@@ -22,10 +22,22 @@ export const generateCommand = new Command("generate")
       });
 
       if (options.out) {
-        await writeFile(options.out, blob.bytes);
-        console.log(`Generated image saved to: ${options.out}`);
-        console.log(`Format: ${blob.mime}`);
-        console.log(`Size: ${blob.width}x${blob.height}`);
+        // Check if destination is cloud storage (s3://, r2://, etc.) or local file
+        if (options.out.includes('://')) {
+          // Use imgflo's save provider (supports S3, etc.)
+          const result = await client.save(blob, options.out);
+          console.log(`Generated image saved to cloud storage!`);
+          console.log(`Provider: ${result.provider}`);
+          console.log(`Location: ${result.location}`);
+          console.log(`Format: ${blob.mime}`);
+          console.log(`Size: ${blob.width}x${blob.height}`);
+        } else {
+          // Local filesystem
+          await writeFile(options.out, blob.bytes);
+          console.log(`Generated image saved to: ${options.out}`);
+          console.log(`Format: ${blob.mime}`);
+          console.log(`Size: ${blob.width}x${blob.height}`);
+        }
       } else {
         // Write to stdout
         process.stdout.write(blob.bytes);

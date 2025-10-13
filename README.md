@@ -329,30 +329,98 @@ console.log(result.url); // https://...
 
 ## CLI Usage
 
+The CLI supports both **individual commands** and **complete workflows**.
+
+### Individual Commands
+
+Perfect for quick one-offs or scripting:
+
 ```bash
-# Check what's installed
-imgflo plugins
+# Generate image (saves to local file or S3)
+imgflo generate --generator openai --params '{"prompt":"sunset"}' --out sunset.png
+imgflo generate --generator openai --params '{"prompt":"sunset"}' --out s3://bucket/sunset.png
 
-# Configure storage, credentials
-imgflo config init
+# Transform image
+imgflo transform --input sunset.png --operation resize --params '{"width":800}' --out resized.png
 
-# Generate images
-imgflo generate --generator qr --params '{"text":"Hello"}' --out qr.png
-imgflo generate --generator shapes --params '{"type":"gradient"}' --out bg.svg
+# Save to cloud storage
+imgflo save --in resized.png --out s3://bucket/final.png
 
-# Transform images
-imgflo transform --input bg.svg --operation convert --to image/png --out bg.png
-
-# Save to filesystem or S3
-imgflo save --in qr.png --out ./images/qr.png
-imgflo save --in qr.png --out s3://my-bucket/images/qr.png
-
-# Run YAML pipelines (v0.2.0+)
-imgflo run pipeline.yaml
-
-# Check status
+# Check configuration
 imgflo doctor
+imgflo plugins
 ```
+
+### Multi-Step Workflows (YAML Pipelines)
+
+Perfect for complex, repeatable workflows:
+
+**Create `pipeline.yaml`:**
+```yaml
+name: AI Image to S3 Workflow
+steps:
+  - kind: generate
+    generator: openai
+    params:
+      prompt: "A serene sunset over mountains"
+      size: "1024x1024"
+    out: sunset_image
+
+  - kind: transform
+    in: sunset_image
+    op: resize
+    params:
+      width: 800
+      height: 600
+    out: resized_image
+
+  - kind: transform
+    in: resized_image
+    op: addCaption
+    params:
+      text: "Beautiful Sunset"
+      position: bottom
+    out: final_image
+
+  - kind: save
+    in: final_image
+    destination: s3://my-bucket/sunset.png
+```
+
+**Run it:**
+```bash
+imgflo run pipeline.yaml
+```
+
+**Output:**
+```
+🚀 Running pipeline: AI Image to S3 Workflow
+
+  sunset_image:
+    Type: image/png
+    Size: 1024x1024
+
+  resized_image:
+    Type: image/png
+    Size: 800x600
+
+  final_image:
+    Type: image/png
+    Size: 800x600
+
+  s3://my-bucket/sunset.png:
+    Location: https://my-bucket.s3.amazonaws.com/sunset.png
+    Provider: s3
+    Size: 245678 bytes
+
+✨ Done!
+```
+
+**Why use pipelines?**
+- Define workflows once, run many times
+- Version control your image generation
+- Easy to share and collaborate
+- Perfect for CI/CD automation
 
 ---
 
@@ -436,45 +504,60 @@ npm install imgflo-quickchart imgflo-d3 imgflo-mermaid imgflo-qr imgflo-screensh
 
 ## Configuration
 
-### Environment Variables
+### Quick Start: Cloud Storage
 
-```bash
-# AWS S3 (for uploads)
-AWS_ACCESS_KEY_ID=your-key
-AWS_SECRET_ACCESS_KEY=your-secret
-AWS_REGION=us-east-1
-S3_BUCKET=your-bucket
-
-# OpenAI (for DALL-E)
-OPENAI_API_KEY=sk-...
-```
-
-### Config File
-
-Create `imgflo.config.ts` or `.imgflorc.json`:
+To upload images to S3-compatible storage (AWS S3, Tigris, R2, etc.), create an `imgflo.config.ts` file in your project root:
 
 ```typescript
 export default {
   save: {
-    default: 's3',
-    fs: {
-      baseDir: './output',
-      chmod: 0o644
-    },
+    default: 's3',  // Use S3 by default
     s3: {
-      bucket: process.env.S3_BUCKET,
-      region: 'us-east-1'
-    }
+      bucket: 'my-bucket',
+      region: 'us-east-1',
+      // Optional: endpoint for S3-compatible services
+      // endpoint: 'https://fly.storage.tigris.dev',  // Tigris
+      // endpoint: 'https://ACCOUNT.r2.cloudflarestorage.com',  // R2
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    },
   },
   ai: {
     openai: {
-      apiKey: process.env.OPENAI_API_KEY
-    }
-  }
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+  },
 };
 ```
 
-Or use the interactive setup:
+Then set environment variables:
+
+```bash
+# .env
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+OPENAI_API_KEY=sk-...
+```
+
+Now you can use `s3://bucket/path` destinations:
+
+```typescript
+// Generate AI image and upload to S3
+const image = await imgflo.generate({
+  generator: 'openai',
+  params: { prompt: 'sunset over mountains' }
+});
+
+await imgflo.save(image, 's3://my-bucket/sunset.png');
+```
+
+**See `imgflo.config.example.ts` for full configuration options.**
+
+###Interactive Setup
+
+Or use the interactive setup wizard:
 
 ```bash
 imgflo config init

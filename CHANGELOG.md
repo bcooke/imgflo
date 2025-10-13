@@ -5,6 +5,36 @@ All notable changes to imgflo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2025-01-12
+
+### Fixed
+
+#### Cloud Storage Upload (Critical Fix)
+- **CLI `generate` command** now supports S3-compatible storage destinations
+  - Before: `imgflo generate --out s3://bucket/image.png` would fail silently
+  - After: Works correctly, uploads to S3/Tigris/R2/etc.
+- **Better error messages** when S3 provider not configured
+  - Now shows exact config needed in error message
+  - Guides users to create `imgflo.config.ts`
+
+### Added
+
+#### Documentation & Examples
+- **`imgflo.config.example.ts`** - Complete configuration example
+  - Shows S3/Tigris/R2 setup
+  - Copy-paste ready with env var references
+- **`example-pipeline.yaml`** - Multi-step workflow example
+  - Generate AI image → Resize → Add caption → Upload to S3
+- **README improvements**
+  - "Quick Start: Cloud Storage" section
+  - Clear distinction between individual commands and pipelines
+  - Real-world workflow examples
+
+### Technical Details
+- CLI `generate` command now detects `://` protocol and uses `client.save()` for cloud destinations
+- All interfaces (JavaScript, CLI, YAML, MCP) now consistently support full workflow abstraction
+- No breaking changes
+
 ## [0.4.1] - 2025-01-12
 
 ### Improved

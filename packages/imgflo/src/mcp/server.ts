@@ -423,7 +423,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     await ensureWorkspace();
 
-    // Load configuration
+    // Load configuration (from imgflo.config.ts or .imgflorc.json)
     const config = await loadConfig();
     const client = createClient(config);
 

@@ -5,7 +5,7 @@ All notable changes to imgflo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.2] - 2025-01-13
+## [0.4.2] - 2025-10-13
 
 ### Fixed
 
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All interfaces (JavaScript, CLI, YAML, MCP) now consistently support full workflow abstraction
 - No breaking changes
 
-## [0.4.1] - 2025-01-12
+## [0.4.1] - 2025-10-12
 
 ### Improved
 
@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All 44 tests passing
 - Auto-fill logic in `/packages/imgflo/src/mcp/server.ts` (lines 452-487, 703-712)
 
-## [0.4.0] - 2025-01-12
+## [0.4.0] - 2025-10-12
 
 ### BREAKING CHANGES - MCP Server Redesign
 
@@ -202,7 +202,7 @@ run_pipeline({
 - Can chain unlimited operations
 - Cloud upload integrated into workflow
 
-## [0.3.0] - 2025-01-11
+## [0.3.0] - 2025-10-12
 
 ### Added
 
@@ -292,7 +292,7 @@ run_pipeline({
 - **Automated Workflows**: Chain filters, effects, and text in YAML pipelines
 - **AI Integration**: Natural language image manipulation via MCP
 
-## [0.2.0] - 2025-01-10
+## [0.2.0] - 2025-10-12
 
 ### Added
 - **Unified `save()` API** - Smart destination routing for filesystem and cloud storage
@@ -319,7 +319,7 @@ run_pipeline({
 - MCP server now returns saved file locations instead of large base64 blobs
 - Resolved 25K token limit issues in MCP by auto-saving images
 
-## [0.1.0] - 2025-01-05
+## [0.1.0] - 2025-10-11
 
 ### Added
 - Initial release

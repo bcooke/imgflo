@@ -7,6 +7,16 @@
 
 **imgflo** is a **workflow execution engine** for image generation and manipulation. It provides three core operations (generate, transform, save) that work consistently across JavaScript, CLI, YAML, and MCP.
 
+## The Problem
+
+**LLMs are non-deterministic.** They're brilliant at understanding "create a sunset over mountains" but struggle with precise operations like "resize to exactly 800x600" or "convert to WebP at 80% quality." The same prompt can produce different results—great for creativity, terrible for reliable image processing.
+
+**Image libraries are fragmented.** Charts need Chart.js. Diagrams need Mermaid. QR codes need node-qrcode. Screenshots need Playwright. Each has different APIs, different output formats, and no way to chain them together. A simple "generate chart → resize → upload to S3" workflow requires juggling three different libraries with manual buffer passing.
+
+**imgflo solves both problems.** It provides a deterministic execution engine with a unified abstraction. LLMs handle the natural language; imgflo handles the precise execution. One API for all image types—charts, diagrams, QR codes, screenshots, AI images—with consistent chaining and storage.
+
+> **Deep dive:** [Why imgflo Exists](./vault/Why-imgflo-Exists.md) explains these problems in detail with concrete examples.
+
 ## Core Concept
 
 Every image workflow is a series of steps:

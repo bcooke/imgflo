@@ -99,8 +99,8 @@ importers:
         specifier: ^22.10.2
         version: 22.18.10
       imgflo:
-        specifier: ^0.1.0-alpha.1
-        version: 0.1.0-alpha.1(ws@8.18.3)(zod@3.25.76)
+        specifier: workspace:*
+        version: link:../imgflo
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -121,8 +121,8 @@ importers:
         specifier: ^1.5.5
         version: 1.5.5
       imgflo:
-        specifier: ^0.1.0-alpha.1
-        version: 0.1.0-alpha.1(ws@8.18.3)(zod@3.25.76)
+        specifier: workspace:*
+        version: link:../imgflo
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

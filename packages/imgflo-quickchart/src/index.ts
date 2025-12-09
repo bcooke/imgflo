@@ -1,4 +1,74 @@
-import type { ImageGenerator, ImageBlob } from "imgflo";
+import type { ImageGenerator, ImageBlob, GeneratorSchema } from "imgflo";
+
+/**
+ * Schema for the QuickChart generator
+ */
+export const quickchartSchema: GeneratorSchema = {
+  name: "quickchart",
+  description: "Generate charts using Chart.js via QuickChart.io API",
+  category: "Charts",
+  parameters: {
+    type: {
+      type: "string",
+      title: "Chart Type",
+      description: "Type of chart to generate",
+      enum: ["bar", "line", "pie", "doughnut", "radar", "polarArea", "scatter", "bubble"],
+      default: "bar",
+    },
+    data: {
+      type: "object",
+      title: "Chart Data",
+      description: "Chart.js data object with labels and datasets",
+      properties: {
+        labels: {
+          type: "array",
+          title: "Labels",
+          description: "Category labels for the chart",
+        },
+        datasets: {
+          type: "array",
+          title: "Datasets",
+          description: "Array of dataset objects",
+        },
+      },
+    },
+    options: {
+      type: "object",
+      title: "Chart Options",
+      description: "Chart.js options object for customization",
+    },
+    width: {
+      type: "number",
+      title: "Width",
+      description: "Image width in pixels",
+      default: 500,
+      minimum: 100,
+      maximum: 2000,
+    },
+    height: {
+      type: "number",
+      title: "Height",
+      description: "Image height in pixels",
+      default: 300,
+      minimum: 100,
+      maximum: 2000,
+    },
+    backgroundColor: {
+      type: "string",
+      title: "Background Color",
+      description: "Background color (hex, rgb, or 'transparent')",
+      default: "transparent",
+    },
+    format: {
+      type: "string",
+      title: "Output Format",
+      description: "Output image format",
+      enum: ["png", "svg", "webp"],
+      default: "png",
+    },
+  },
+  requiredParameters: ["type", "data"],
+};
 
 /**
  * QuickChart generator - creates charts using Chart.js via QuickChart.io API
@@ -79,6 +149,7 @@ export default function quickchart(config: QuickChartConfig = {}): ImageGenerato
 
   return {
     name: "quickchart",
+    schema: quickchartSchema,
 
     async generate(params: Record<string, unknown>): Promise<ImageBlob> {
       const {

@@ -12,13 +12,24 @@ import type {
   UploadResult,
   SaveResult,
   Pipeline,
+  PipelineStep,
   PipelineResult,
+  ClientCapabilities,
+  GeneratorSchema,
+  TransformOperationSchema,
+  SaveProviderSchema,
 } from "./types.js";
 import { Logger } from "./logger.js";
 import {
   ProviderNotFoundError,
   ConfigurationError,
 } from "./errors.js";
+import {
+  buildDependencyGraph,
+  computeExecutionWaves,
+  executeWithConcurrency,
+  type StepNode,
+} from "./pipeline-runner.js";
 
 /**
  * Main imgflo client for image generation, transformation, and upload
@@ -312,60 +323,134 @@ export class Imgflo {
 
   /**
    * Run a declarative pipeline of operations
+   *
+   * Steps are analyzed for dependencies and executed in parallel where possible.
+   * The `concurrency` option controls maximum parallel steps (default: Infinity).
    */
   async run(pipeline: Pipeline): Promise<PipelineResult[]> {
     this.logger.info(`Running pipeline: ${pipeline.name || "unnamed"}`);
 
     const results: PipelineResult[] = [];
     const variables = new Map<string, ImageBlob | SaveResult>();
+    const concurrency = pipeline.concurrency ?? Infinity;
 
-    for (const step of pipeline.steps) {
-      this.logger.debug(`Executing step: ${step.kind}`);
+    // Build dependency graph and compute execution waves
+    const nodes = buildDependencyGraph(pipeline.steps);
+    const waves = computeExecutionWaves(nodes);
 
-      if (step.kind === "generate") {
-        const blob = await this.generate({
-          generator: step.generator,
-          params: step.params,
-        });
-        variables.set(step.out, blob);
-        results.push({ step, out: step.out, value: blob });
-      } else if (step.kind === "transform") {
-        const inputBlob = variables.get(step.in);
-        if (!inputBlob || !("bytes" in inputBlob)) {
-          throw new ConfigurationError(
-            `Transform step references undefined or invalid variable: ${step.in}`
-          );
+    this.logger.debug(
+      `Pipeline has ${waves.length} execution waves, concurrency: ${concurrency}`
+    );
+
+    // Execute waves sequentially, steps within each wave in parallel
+    for (const wave of waves) {
+      this.logger.debug(`Executing wave with ${wave.steps.length} steps`);
+
+      // Execute all steps in this wave in parallel (bounded by concurrency)
+      const waveResults = await executeWithConcurrency(
+        wave.steps.map(
+          (node) => () => this.executeStep(node.step, variables)
+        ),
+        concurrency
+      );
+
+      // Collect results and update variables map
+      for (let i = 0; i < wave.steps.length; i++) {
+        const node = wave.steps[i];
+        const result = waveResults[i];
+        results.push(result);
+
+        // Store output in variables map for dependent steps
+        if (result.value && result.out) {
+          variables.set(result.out, result.value);
         }
-
-        const blob = await this.transform({
-          blob: inputBlob as ImageBlob,
-          op: step.op,
-          params: step.params,
-        });
-        variables.set(step.out, blob);
-        results.push({ step, out: step.out, value: blob });
-      } else if (step.kind === "save") {
-        const inputBlob = variables.get(step.in);
-        if (!inputBlob || !("bytes" in inputBlob)) {
-          throw new ConfigurationError(
-            `Save step references undefined or invalid variable: ${step.in}`
-          );
-        }
-
-        const result = await this.save(
-          inputBlob as ImageBlob,
-          step.provider ? { path: step.destination, provider: step.provider } : step.destination
-        );
-
-        if (step.out) {
-          variables.set(step.out, result);
-        }
-        results.push({ step, out: step.out || step.destination, value: result });
       }
     }
 
     this.logger.info(`Pipeline completed with ${results.length} steps`);
     return results;
+  }
+
+  /**
+   * Execute a single pipeline step
+   * @internal
+   */
+  private async executeStep(
+    step: PipelineStep,
+    variables: Map<string, ImageBlob | SaveResult>
+  ): Promise<PipelineResult> {
+    this.logger.debug(`Executing step: ${step.kind}`);
+
+    if (step.kind === "generate") {
+      const blob = await this.generate({
+        generator: step.generator,
+        params: step.params,
+      });
+      return { step, out: step.out, value: blob };
+    } else if (step.kind === "transform") {
+      const inputBlob = variables.get(step.in);
+      if (!inputBlob || !("bytes" in inputBlob)) {
+        throw new ConfigurationError(
+          `Transform step references undefined or invalid variable: ${step.in}`
+        );
+      }
+
+      const blob = await this.transform({
+        blob: inputBlob as ImageBlob,
+        op: step.op,
+        params: step.params,
+      });
+      return { step, out: step.out, value: blob };
+    } else if (step.kind === "save") {
+      const inputBlob = variables.get(step.in);
+      if (!inputBlob || !("bytes" in inputBlob)) {
+        throw new ConfigurationError(
+          `Save step references undefined or invalid variable: ${step.in}`
+        );
+      }
+
+      const result = await this.save(
+        inputBlob as ImageBlob,
+        step.provider
+          ? { path: step.destination, provider: step.provider }
+          : step.destination
+      );
+
+      return { step, out: step.out || step.destination, value: result };
+    }
+
+    throw new ConfigurationError(`Unknown step kind: ${(step as any).kind}`);
+  }
+
+  /**
+   * Get capabilities of all registered providers
+   * This allows consumers to discover available generators, transforms, and save providers
+   */
+  getCapabilities(): ClientCapabilities {
+    const generators: GeneratorSchema[] = [];
+    const transforms: TransformOperationSchema[] = [];
+    const saveProviders: SaveProviderSchema[] = [];
+
+    // Collect generator schemas
+    for (const generator of Object.values(this.providers.generators)) {
+      generators.push(generator.schema);
+    }
+
+    // Collect transform operation schemas
+    for (const provider of Object.values(this.providers.transform)) {
+      transforms.push(...Object.values(provider.operationSchemas));
+    }
+
+    // Collect save provider info
+    for (const provider of Object.values(this.providers.save)) {
+      // SaveProvider doesn't have schema yet, create minimal info
+      saveProviders.push({
+        name: provider.name,
+        description: `Save provider: ${provider.name}`,
+      });
+    }
+
+    return { generators, transforms, saveProviders };
   }
 
   /**

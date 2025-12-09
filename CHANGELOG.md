@@ -5,6 +5,106 @@ All notable changes to imgflo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-12-08
+
+### BREAKING CHANGES
+
+#### Schema Required on Providers
+
+All generators and transform providers must now include schema definitions:
+
+- `ImageGenerator.schema` is now **required** (was optional)
+- `TransformProvider.operationSchemas` is now **required** (was optional)
+
+This ensures all capabilities are discoverable and documented.
+
+### Added
+
+#### Capability Discovery API
+
+New `getCapabilities()` method on the imgflo client for runtime discovery:
+
+```typescript
+const client = createClient();
+const caps = client.getCapabilities();
+
+// Returns:
+// {
+//   generators: GeneratorSchema[],
+//   transforms: TransformOperationSchema[],
+//   saveProviders: SaveProviderSchema[]
+// }
+```
+
+This enables:
+- IDE autocomplete and validation
+- Visual editors to generate dynamic UIs
+- MCP/AI agents to understand available capabilities
+
+#### Schema Types
+
+New TypeScript types for capability schemas:
+
+- `ParameterSchema` - Describes a parameter (type, title, description, constraints)
+- `GeneratorSchema` - Describes a generator with its parameters
+- `TransformOperationSchema` - Describes a transform operation
+- `SaveProviderSchema` - Describes a save provider
+- `ClientCapabilities` - Full capability manifest
+
+#### Parallel Pipeline Execution
+
+Pipeline execution now runs steps in parallel where possible:
+
+```typescript
+// These steps run in parallel (wave 1):
+{ kind: 'generate', generator: 'shapes', out: 'img1' }
+{ kind: 'generate', generator: 'qr', out: 'img2' }
+
+// This step waits for wave 1 (wave 2):
+{ kind: 'transform', in: 'img1', out: 'img3' }
+```
+
+Key features:
+- Automatic dependency graph analysis from `in`/`out` variables
+- Wave-based execution (independent steps run simultaneously)
+- Bounded concurrency via `Pipeline.concurrency` option
+- Early error detection for circular/missing dependencies
+
+#### Built-in Provider Schemas
+
+All built-in providers now include comprehensive schemas:
+
+**Generators:**
+- `shapes` - Circle, rectangle, gradient, pattern generation
+- `openai` - DALL-E image generation
+
+**Transform Operations (17 total):**
+- `convert`, `resize`, `composite`
+- `blur`, `sharpen`, `grayscale`, `negate`, `normalize`, `threshold`
+- `modulate`, `tint`, `extend`, `extract`
+- `roundCorners`, `addText`, `addCaption`, `preset`
+
+### Changed
+
+- Pipeline `run()` method now uses parallel execution by default
+- Error messages improved for missing dependencies in pipelines
+
+### Technical Details
+
+- New `pipeline-runner.ts` module for dependency graph and wave computation
+- `executeWithConcurrency()` utility for bounded parallel execution
+- All 65 tests passing
+- Documentation added to vault: `Schema-Capability-System.md`, `Pipeline-Execution-Engine.md`
+
+### Plugin Updates (0.2.0)
+
+All plugins updated to include required schemas:
+- `imgflo-qr` - QR code parameters (text, errorCorrectionLevel, width, etc.)
+- `imgflo-mermaid` - Diagram parameters (code, theme, backgroundColor, etc.)
+- `imgflo-quickchart` - Chart parameters (type, data, options, etc.)
+- `imgflo-d3` - Visualization parameters
+- `imgflo-screenshot` - Screenshot parameters
+
 ## [0.4.3] - 2025-10-13
 
 ### Fixed

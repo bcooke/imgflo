@@ -21,6 +21,12 @@ export type {
   Pipeline,
   PipelineStep,
   PipelineResult,
+  // Schema types for capability discovery
+  ParameterSchema,
+  GeneratorSchema,
+  TransformOperationSchema,
+  SaveProviderSchema,
+  ClientCapabilities,
   // Legacy aliases
   SvgProvider,
   AiProvider,

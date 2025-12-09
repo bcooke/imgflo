@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ImageGenerator, ImageBlob } from "../../core/types.js";
+import type { ImageGenerator, ImageBlob, GeneratorSchema } from "../../core/types.js";
 import { ProviderNotFoundError } from "../../core/errors.js";
 
 export interface OpenAIConfig {
@@ -19,6 +19,51 @@ export interface OpenAIGenerateParams {
 }
 
 /**
+ * Schema for the OpenAI generator
+ */
+export const openaiSchema: GeneratorSchema = {
+  name: "openai",
+  description: "Generate images using OpenAI's DALL-E models",
+  category: "AI",
+  parameters: {
+    prompt: {
+      type: "string",
+      title: "Prompt",
+      description: "Describe the image you want to generate",
+    },
+    model: {
+      type: "string",
+      title: "Model",
+      description: "DALL-E model to use",
+      enum: ["dall-e-2", "dall-e-3"],
+      default: "dall-e-3",
+    },
+    size: {
+      type: "string",
+      title: "Size",
+      description: "Image dimensions",
+      enum: ["256x256", "512x512", "1024x1024", "1024x1792", "1792x1024"],
+      default: "1024x1024",
+    },
+    quality: {
+      type: "string",
+      title: "Quality",
+      description: "Image quality (DALL-E 3 only)",
+      enum: ["standard", "hd"],
+      default: "standard",
+    },
+    style: {
+      type: "string",
+      title: "Style",
+      description: "Image style (DALL-E 3 only)",
+      enum: ["vivid", "natural"],
+      default: "vivid",
+    },
+  },
+  requiredParameters: ["prompt"],
+};
+
+/**
  * OpenAI DALL-E image generator
  *
  * Generates images using OpenAI's DALL-E models (DALL-E 2 or DALL-E 3).
@@ -36,6 +81,7 @@ export interface OpenAIGenerateParams {
  */
 export class OpenAIGenerator implements ImageGenerator {
   public readonly name = "openai";
+  public readonly schema = openaiSchema;
   private client: OpenAI;
   private config: OpenAIConfig;
 

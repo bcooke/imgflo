@@ -1,5 +1,66 @@
-import type { ImageGenerator, ImageBlob } from "imgflo";
+import type { ImageGenerator, ImageBlob, GeneratorSchema } from "imgflo";
 import QRCode from "qrcode";
+
+/**
+ * Schema for the QR code generator
+ */
+export const qrSchema: GeneratorSchema = {
+  name: "qr",
+  description: "Generate QR codes from text or URLs",
+  category: "Utility",
+  parameters: {
+    text: {
+      type: "string",
+      title: "Content",
+      description: "Text or URL to encode in the QR code",
+    },
+    errorCorrectionLevel: {
+      type: "string",
+      title: "Error Correction",
+      description: "Error correction level: L (7%), M (15%), Q (25%), H (30%)",
+      enum: ["L", "M", "Q", "H"],
+      default: "M",
+    },
+    width: {
+      type: "number",
+      title: "Width",
+      description: "Output width in pixels",
+      default: 300,
+      minimum: 50,
+      maximum: 1000,
+    },
+    margin: {
+      type: "number",
+      title: "Margin",
+      description: "Quiet zone margin (in modules)",
+      default: 4,
+      minimum: 0,
+      maximum: 20,
+    },
+    format: {
+      type: "string",
+      title: "Output Format",
+      description: "Output image format",
+      enum: ["png", "svg"],
+      default: "png",
+    },
+    version: {
+      type: "number",
+      title: "QR Version",
+      description: "QR code version (1-40, auto if not specified)",
+      minimum: 1,
+      maximum: 40,
+    },
+    maskPattern: {
+      type: "number",
+      title: "Mask Pattern",
+      description: "Mask pattern (0-7, auto if not specified)",
+      minimum: 0,
+      maximum: 7,
+    },
+  },
+  requiredParameters: ["text"],
+};
 
 /**
  * QR code generator using the qrcode library
@@ -80,6 +141,7 @@ export default function qr(config: QRConfig = {}): ImageGenerator {
 
   return {
     name: "qr",
+    schema: qrSchema,
 
     async generate(params: Record<string, unknown>): Promise<ImageBlob> {
       const {

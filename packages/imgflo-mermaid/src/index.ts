@@ -1,8 +1,59 @@
-import type { ImageGenerator, ImageBlob } from "imgflo";
+import type { ImageGenerator, ImageBlob, GeneratorSchema } from "imgflo";
 import { run as runMermaid } from "@mermaid-js/mermaid-cli";
 import { writeFile, unlink } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+
+/**
+ * Schema for the Mermaid diagram generator
+ */
+export const mermaidSchema: GeneratorSchema = {
+  name: "mermaid",
+  description: "Generate diagrams using Mermaid syntax (flowcharts, sequence diagrams, etc.)",
+  category: "Diagrams",
+  parameters: {
+    code: {
+      type: "string",
+      title: "Mermaid Code",
+      description: "Mermaid diagram syntax (e.g., 'graph TD; A-->B')",
+    },
+    theme: {
+      type: "string",
+      title: "Theme",
+      description: "Diagram color theme",
+      enum: ["default", "forest", "dark", "neutral"],
+      default: "default",
+    },
+    backgroundColor: {
+      type: "string",
+      title: "Background Color",
+      description: "Background color (hex or named color)",
+      default: "white",
+    },
+    format: {
+      type: "string",
+      title: "Output Format",
+      description: "Output image format",
+      enum: ["svg", "png"],
+      default: "svg",
+    },
+    width: {
+      type: "number",
+      title: "Width",
+      description: "Image width in pixels (for PNG)",
+      minimum: 100,
+      maximum: 4096,
+    },
+    height: {
+      type: "number",
+      title: "Height",
+      description: "Image height in pixels (for PNG)",
+      minimum: 100,
+      maximum: 4096,
+    },
+  },
+  requiredParameters: ["code"],
+};
 
 /**
  * Mermaid diagram generator - creates diagrams using Mermaid syntax
@@ -77,6 +128,7 @@ export default function mermaid(config: MermaidConfig = {}): ImageGenerator {
 
   return {
     name: "mermaid",
+    schema: mermaidSchema,
 
     async generate(params: Record<string, unknown>): Promise<ImageBlob> {
       const {

@@ -93,6 +93,94 @@ export interface ImgfloConfig {
   };
 }
 
+// =============================================================================
+// Schema Types for Capability Discovery
+// =============================================================================
+
+/**
+ * JSON Schema-compatible type for a single parameter
+ */
+export interface ParameterSchema {
+  /** Parameter data type */
+  type: "string" | "number" | "boolean" | "object" | "array";
+  /** Human-readable title for UI display */
+  title?: string;
+  /** Description of what the parameter does */
+  description?: string;
+  /** Default value */
+  default?: unknown;
+  /** Allowed values (for string enums) */
+  enum?: string[];
+  /** Minimum value (for numbers) */
+  minimum?: number;
+  /** Maximum value (for numbers) */
+  maximum?: number;
+  /** For object types: nested property schemas */
+  properties?: Record<string, ParameterSchema>;
+  /** For array types: schema of array items */
+  items?: ParameterSchema;
+}
+
+/**
+ * Schema for an image generator
+ */
+export interface GeneratorSchema {
+  /** Generator identifier (matches ImageGenerator.name) */
+  name: string;
+  /** Human-readable description */
+  description?: string;
+  /** Category for UI grouping (e.g., 'Basic', 'AI', 'Utility') */
+  category?: string;
+  /** Parameter definitions */
+  parameters: Record<string, ParameterSchema>;
+  /** Names of required parameters */
+  requiredParameters?: string[];
+}
+
+/**
+ * Schema for a transform operation
+ */
+export interface TransformOperationSchema {
+  /** Operation name (e.g., 'resize', 'blur') */
+  name: string;
+  /** Human-readable description */
+  description?: string;
+  /** Category for UI grouping (e.g., 'Size', 'Filters', 'Text') */
+  category?: string;
+  /** Parameter definitions */
+  parameters: Record<string, ParameterSchema>;
+  /** Names of required parameters */
+  requiredParameters?: string[];
+}
+
+/**
+ * Schema for a save provider
+ */
+export interface SaveProviderSchema {
+  /** Provider name (e.g., 'fs', 's3') */
+  name: string;
+  /** Human-readable description */
+  description?: string;
+  /** URL protocols this provider handles (e.g., ['s3://', 'r2://']) */
+  protocols?: string[];
+}
+
+/**
+ * Complete capabilities of an imgflo client
+ */
+export interface ClientCapabilities {
+  /** Available image generators */
+  generators: GeneratorSchema[];
+  /** Available transform operations */
+  transforms: TransformOperationSchema[];
+  /** Available save providers */
+  saveProviders: SaveProviderSchema[];
+}
+
+// =============================================================================
+// Provider Interfaces
+// =============================================================================
+
 /**
  * Image generator interface - unified for all generation types
  * (SVG, AI, procedural, etc.)
@@ -100,6 +188,8 @@ export interface ImgfloConfig {
 export interface ImageGenerator {
   /** Generator name (e.g., 'shapes', 'openai', 'trianglify') */
   name: string;
+  /** Schema describing this generator's parameters */
+  schema: GeneratorSchema;
   /** Generate an image from parameters */
   generate(params: Record<string, unknown>): Promise<ImageBlob>;
 }
@@ -114,6 +204,8 @@ export type AiProvider = ImageGenerator;
 export interface TransformProvider {
   /** Provider name */
   name: string;
+  /** Schemas for all operations this provider supports */
+  operationSchemas: Record<string, TransformOperationSchema>;
   /** Convert image to a different format */
   convert(input: ImageBlob, to: MimeType): Promise<ImageBlob>;
   /** Resize an image (optional) */

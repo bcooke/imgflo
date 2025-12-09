@@ -1,11 +1,78 @@
-import type { SvgProvider, ImageBlob } from "../../core/types.js";
+import type { SvgProvider, ImageBlob, GeneratorSchema } from "../../core/types.js";
 import { GenerationError } from "../../core/errors.js";
+
+/**
+ * Schema for the shapes generator
+ */
+export const shapesSchema: GeneratorSchema = {
+  name: "shapes",
+  description: "Generate basic SVG shapes: gradients, circles, rectangles, and patterns",
+  category: "Basic",
+  parameters: {
+    type: {
+      type: "string",
+      title: "Shape Type",
+      description: "Type of shape to generate",
+      enum: ["gradient", "circle", "rectangle", "pattern"],
+      default: "gradient",
+    },
+    width: {
+      type: "number",
+      title: "Width",
+      description: "Width in pixels",
+      default: 1200,
+      minimum: 1,
+      maximum: 4096,
+    },
+    height: {
+      type: "number",
+      title: "Height",
+      description: "Height in pixels",
+      default: 630,
+      minimum: 1,
+      maximum: 4096,
+    },
+    color1: {
+      type: "string",
+      title: "Primary Color",
+      description: "Primary color (for gradients)",
+      default: "#667eea",
+    },
+    color2: {
+      type: "string",
+      title: "Secondary Color",
+      description: "Secondary color (for gradients)",
+      default: "#764ba2",
+    },
+    fill: {
+      type: "string",
+      title: "Fill Color",
+      description: "Fill color (for circles and rectangles)",
+    },
+    rx: {
+      type: "number",
+      title: "Corner Radius",
+      description: "Corner radius for rounded rectangles",
+      default: 0,
+      minimum: 0,
+    },
+    patternType: {
+      type: "string",
+      title: "Pattern Type",
+      description: "Type of pattern (for pattern shapes)",
+      enum: ["dots", "stripes", "grid"],
+      default: "dots",
+    },
+  },
+  requiredParameters: [],
+};
 
 /**
  * Simple SVG shapes provider for generating basic graphics
  */
 export class ShapesProvider implements SvgProvider {
   name = "shapes";
+  schema = shapesSchema;
 
   async generate(params: Record<string, unknown>): Promise<ImageBlob> {
     const {

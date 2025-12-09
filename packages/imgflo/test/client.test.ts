@@ -1,10 +1,27 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Imgflo } from '../src/core/client.js';
-import type { ImageGenerator, TransformProvider, StoreProvider, SaveProvider, ImageBlob } from '../src/core/types.js';
+import type { ImageGenerator, TransformProvider, StoreProvider, SaveProvider, ImageBlob, GeneratorSchema, TransformOperationSchema } from '../src/core/types.js';
+
+// Mock generator schema
+const mockGeneratorSchema: GeneratorSchema = {
+  name: 'mock',
+  description: 'Mock generator for testing',
+  category: 'Test',
+  parameters: {
+    text: {
+      type: 'string',
+      title: 'Text',
+      description: 'Text to generate',
+      default: 'test',
+    },
+  },
+  requiredParameters: [],
+};
 
 // Mock generator
 const mockGenerator: ImageGenerator = {
   name: 'mock',
+  schema: mockGeneratorSchema,
   async generate(params: Record<string, unknown>): Promise<ImageBlob> {
     const text = (params.text as string) || 'test';
     return {
@@ -17,9 +34,33 @@ const mockGenerator: ImageGenerator = {
   },
 };
 
+// Mock transform provider operation schemas
+const mockTransformSchemas: Record<string, TransformOperationSchema> = {
+  convert: {
+    name: 'convert',
+    description: 'Convert image format',
+    category: 'Format',
+    parameters: {
+      to: { type: 'string', title: 'Target Format' },
+    },
+    requiredParameters: ['to'],
+  },
+  resize: {
+    name: 'resize',
+    description: 'Resize image',
+    category: 'Size',
+    parameters: {
+      width: { type: 'number', title: 'Width' },
+      height: { type: 'number', title: 'Height' },
+    },
+    requiredParameters: [],
+  },
+};
+
 // Mock transform provider
 const mockTransformProvider: TransformProvider = {
   name: 'mock-transform',
+  operationSchemas: mockTransformSchemas,
   async convert(blob: ImageBlob, format: string): Promise<ImageBlob> {
     return {
       ...blob,
@@ -94,6 +135,7 @@ describe('Imgflo Core Client', () => {
     it('should register multiple generators', () => {
       const gen1: ImageGenerator = {
         name: 'gen1',
+        schema: { name: 'gen1', description: 'Gen 1', parameters: {} },
         async generate() {
           return {
             bytes: Buffer.from('test'),
@@ -107,6 +149,7 @@ describe('Imgflo Core Client', () => {
 
       const gen2: ImageGenerator = {
         name: 'gen2',
+        schema: { name: 'gen2', description: 'Gen 2', parameters: {} },
         async generate() {
           return {
             bytes: Buffer.from('test'),
@@ -420,7 +463,7 @@ describe('Imgflo Core Client', () => {
             },
           ],
         })
-      ).rejects.toThrow('Transform step references undefined or invalid variable: nonexistent');
+      ).rejects.toThrow(/Circular dependency or missing input.*nonexistent/);
     });
 
     it('should throw error for invalid save reference', async () => {
@@ -440,7 +483,107 @@ describe('Imgflo Core Client', () => {
             },
           ],
         })
-      ).rejects.toThrow('Save step references undefined or invalid variable: nonexistent');
+      ).rejects.toThrow(/Circular dependency or missing input.*nonexistent/);
+    });
+
+    it('should execute independent steps in parallel', async () => {
+      // Create generators that track execution timing
+      const executionTimes: { name: string; start: number; end: number }[] = [];
+      const baseTime = Date.now();
+
+      const slowGen1: ImageGenerator = {
+        name: 'slow1',
+        schema: { name: 'slow1', description: 'Slow generator 1', parameters: {} },
+        async generate() {
+          const start = Date.now() - baseTime;
+          await new Promise(r => setTimeout(r, 50));
+          const end = Date.now() - baseTime;
+          executionTimes.push({ name: 'slow1', start, end });
+          return { bytes: Buffer.from('1'), mime: 'image/png', width: 100, height: 100, source: 'slow1' };
+        },
+      };
+
+      const slowGen2: ImageGenerator = {
+        name: 'slow2',
+        schema: { name: 'slow2', description: 'Slow generator 2', parameters: {} },
+        async generate() {
+          const start = Date.now() - baseTime;
+          await new Promise(r => setTimeout(r, 50));
+          const end = Date.now() - baseTime;
+          executionTimes.push({ name: 'slow2', start, end });
+          return { bytes: Buffer.from('2'), mime: 'image/png', width: 100, height: 100, source: 'slow2' };
+        },
+      };
+
+      client.registerGenerator(slowGen1);
+      client.registerGenerator(slowGen2);
+
+      const results = await client.run({
+        name: 'parallel-test',
+        steps: [
+          { kind: 'generate', generator: 'slow1', params: {}, out: 'img1' },
+          { kind: 'generate', generator: 'slow2', params: {}, out: 'img2' },
+        ],
+      });
+
+      expect(results).toHaveLength(2);
+      // Both should have started before either finished (parallel execution)
+      // With sequential execution, total time would be ~100ms
+      // With parallel execution, total time should be ~50ms
+      const totalTime = Math.max(...executionTimes.map(t => t.end));
+      expect(totalTime).toBeLessThan(90); // Allow some overhead
+    });
+  });
+
+  describe('Capability Discovery', () => {
+    it('should return empty capabilities when no providers registered', () => {
+      const caps = client.getCapabilities();
+
+      expect(caps.generators).toEqual([]);
+      expect(caps.transforms).toEqual([]);
+      expect(caps.saveProviders).toEqual([]);
+    });
+
+    it('should return generator schemas', () => {
+      client.registerGenerator(mockGenerator);
+
+      const caps = client.getCapabilities();
+
+      expect(caps.generators).toHaveLength(1);
+      expect(caps.generators[0].name).toBe('mock');
+      expect(caps.generators[0].description).toBe('Mock generator for testing');
+      expect(caps.generators[0].category).toBe('Test');
+      expect(caps.generators[0].parameters.text).toBeDefined();
+    });
+
+    it('should return transform operation schemas', () => {
+      client.registerTransformProvider(mockTransformProvider);
+
+      const caps = client.getCapabilities();
+
+      expect(caps.transforms).toHaveLength(2);
+      expect(caps.transforms.map(t => t.name).sort()).toEqual(['convert', 'resize']);
+    });
+
+    it('should return save provider info', () => {
+      client.registerSaveProvider(mockSaveProvider);
+
+      const caps = client.getCapabilities();
+
+      expect(caps.saveProviders).toHaveLength(1);
+      expect(caps.saveProviders[0].name).toBe('mock-save');
+    });
+
+    it('should return all capabilities together', () => {
+      client.registerGenerator(mockGenerator);
+      client.registerTransformProvider(mockTransformProvider);
+      client.registerSaveProvider(mockSaveProvider);
+
+      const caps = client.getCapabilities();
+
+      expect(caps.generators).toHaveLength(1);
+      expect(caps.transforms).toHaveLength(2);
+      expect(caps.saveProviders).toHaveLength(1);
     });
   });
 });
